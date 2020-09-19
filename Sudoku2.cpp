@@ -28,18 +28,20 @@ void SwapSeqEntries(int S1, int S2)
 }
 
 
-void InitEntry(int i, int j, int val)
+bool InitEntry(int i, int j, int val)
 {
     int Square = 9 * i + j;
     int valbit = 1 << val;
     int SeqPtr2;
 
-     // add suitable checks for data consistency
-
-    Entry[Square] = valbit;
-    Block[InBlock[Square]] &= ~valbit;
-    Col[InCol[Square]] &= ~valbit; // Simpler Col[j] &= ~valbit;
-    Row[InRow[Square]] &= ~valbit; // Simpler Row[i] &= ~valbit;
+    if (Block[InBlock[Square]] & valbit && Col[InCol[Square]] & valbit && Row[InRow[Square]] & valbit) {
+        Entry[Square] = valbit;
+        Block[InBlock[Square]] &= ~valbit;
+        Col[InCol[Square]] &= ~valbit; // Simpler Col[j] &= ~valbit;
+        Row[InRow[Square]] &= ~valbit; // Simpler Row[i] &= ~valbit;
+    } else {
+        return false;
+    }
 
     SeqPtr2 = SeqPtr;
     while (SeqPtr2 < 81 && Sequence[SeqPtr2] != Square)
@@ -47,19 +49,21 @@ void InitEntry(int i, int j, int val)
 
     SwapSeqEntries(SeqPtr, SeqPtr2);
     SeqPtr++;
+    return true;
 }
 
 
-void InitPuzzle(const char *puzzle) {
+bool InitPuzzle(const char *puzzle) {
     int i, j;
 
     for (i = 0; i < 9; i++) {
         for (j = 0; j < 9; j++) {
             char ch = puzzle[i * 9 + j];
             if (ch >= '1' && ch <= '9')
-                InitEntry(i, j, ch - '0');
+                if (!InitEntry(i, j, ch - '0')) return false;
         }
     }
+    return true;
 }
 
 
@@ -170,8 +174,12 @@ size_t OtherSolverLHLSudoku(const char *input,
     SolutionCount = 0;
     GuessCount = 0;
 
-    InitPuzzle(input);
-    Place(SeqPtr);
-    *num_guesses = GuessCount;
-    return SolutionCount;
+    if (InitPuzzle(input)) {
+        Place(SeqPtr);
+        *num_guesses = GuessCount;
+        return SolutionCount;
+    } else {
+        *num_guesses = 0;
+        return 0;
+    }
 }
